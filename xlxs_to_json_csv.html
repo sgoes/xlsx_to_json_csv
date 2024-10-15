@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversão de XLSX para JSON e CSV</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="container mt-5">
+        <h1 class="text-center">Conversão de XLSX para JSON e CSV</h1>
+
+        <!-- Texto introdutório -->
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-8">
+                <div class="alert alert-info" role="alert">
+                    <p>Por favor, assegura-te de que os dados do ficheiro XLSX estão devidamente estruturados. As informações devem estar contidas apenas dentro de tabelas, onde cada linha corresponde a um registo (ou entrada) e cada coluna representa um atributo (ou campo) desse registo. Esta estrutura é essencial para garantir uma conversão correta dos dados para os formatos JSON e CSV.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label for="fileInput" class="form-label">Escolhe um ficheiro XLSX</label>
+                    <input class="form-control" type="file" id="fileInput" accept=".xlsx">
+                </div>
+                <button class="btn btn-primary w-100 mb-3" onclick="convertToJSON()">Converter para JSON e CSV</button>
+                <button id="downloadJsonBtn" class="btn btn-success w-100 d-none mb-3" onclick="downloadJSON()">Descarregar JSON</button>
+                <button id="downloadCsvBtn" class="btn btn-warning w-100 d-none" onclick="downloadCSV()">Descarregar CSV</button>
+                <pre id="output" class="mt-3 bg-light p-3 border"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS (Opcional) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        let jsonData = null; // Variável global para armazenar o JSON convertido
+        let csvData = null; // Variável global para armazenar o CSV convertido
+
+        function getCurrentDateTime() {
+            const now = new Date();
+            const day = String(now.getDate()).padStart(2, '0');
+            const month = String(now.getMonth() + 1).padStart(2, '0'); // Janeiro é 0!
+            const year = now.getFullYear();
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            return `${day}_${month}_${year}_${hours}_${minutes}_${seconds}`;
+        }
+
+        function convertToJSON() {
+            const fileInput = document.getElementById('fileInput');
+            const output = document.getElementById('output');
+            const downloadJsonBtn = document.getElementById('downloadJsonBtn');
+            const downloadCsvBtn = document.getElementById('downloadCsvBtn');
+
+            if (!fileInput.files.length) {
+                alert("Por favor, seleciona um ficheiro XLSX.");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheetName = workbook.SheetNames[0]; // Pega a primeira folha
+                const worksheet = workbook.Sheets[sheetName];
+                
+                // Converter para JSON
+                jsonData = XLSX.utils.sheet_to_json(worksheet);
+                output.textContent = JSON.stringify(jsonData, null, 2); // Mostra o JSON formatado
+
+                // Converter para CSV
+                csvData = XLSX.utils.sheet_to_csv(worksheet);
+
+                // Mostrar botões de download
+                downloadJsonBtn.classList.remove('d-none');
+                downloadCsvBtn.classList.remove('d-none');
+            };
+
+            reader.readAsArrayBuffer(fileInput.files[0]);
+        }
+
+        function downloadJSON() {
+            if (!jsonData) return;
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(jsonData, null, 2));
+            const downloadAnchorNode = document.createElement('a');
+            const dateTime = getCurrentDateTime();
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${dateTime}_tabela.json`);
+            document.body.appendChild(downloadAnchorNode); // Required for Firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+
+        function downloadCSV() {
+            if (!csvData) return;
+
+            const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csvData);
+            const downloadAnchorNode = document.createElement('a');
+            const dateTime = getCurrentDateTime();
+            downloadAnchorNode.setAttribute("href", dataStr);
+            downloadAnchorNode.setAttribute("download", `${dateTime}_tabela.csv`);
+            document.body.appendChild(downloadAnchorNode); // Required for Firefox
+            downloadAnchorNode.click();
+            downloadAnchorNode.remove();
+        }
+    </script>
+</body>
+</html>
